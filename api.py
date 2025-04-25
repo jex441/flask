@@ -74,15 +74,15 @@ def extract_outcome_info(user_input: str) -> EventExtraction:
     return result
 
 def get_recruiter_sequence(description: str) -> SequenceDetails:
-    """Second LLM call to determine the recruiter sequence"""
-    logger.info("Starting to develop sequence")
+    """Second LLM call to determine the recruiter message"""
+    logger.info("Starting to develop outreach message")
 
     completion = client.beta.chat.completions.parse(
         model=model,
         messages=[
             {
                 "role": "system",
-                "content": f"Generate a three step email sequence as a recruiter to a qualified candidate regarding a role you think they are a good match for.",
+                "content": f"Generate an email as a recruiter based on the provided details.",
             },
             {"role": "user", "content": description},
         ],
@@ -90,7 +90,7 @@ def get_recruiter_sequence(description: str) -> SequenceDetails:
     )
     result = completion.choices[0].message.parsed
     logger.info(
-        f"Parsed email sequence: {result.name}"
+        f"Parsed email outreach: {result.name}"
     )
     return result
 
@@ -103,7 +103,7 @@ def generate_confirmation(sequence_details: SequenceDetails) -> EventConfirmatio
         messages=[
             {
                 "role": "system",
-                "content": "Generate a natural response to accompany the three step email sequence reaching out to a qualified candidate and offer to provide additional steps, details, or modifications.",
+                "content": "Generate a natural response to accompany the email outreach to a qualified candidate and offer to provide additional steps, details, or modifications.",
             },
             {"role": "user", "content": str(sequence_details.model_dump())},
         ],
@@ -135,7 +135,7 @@ def process_request(user_input: str) -> Optional[EventConfirmation]:
         )
         return None
 
-    logger.info("Gate check passed, proceeding with email sequence processing")
+    logger.info("Gate check passed, proceeding with email outreach processing")
 
     # Second LLM call: Get detailed exercise information
     sequence_details = get_recruiter_sequence(initial_extraction.description)
