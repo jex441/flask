@@ -59,13 +59,13 @@ def extract_outcome_info(user_input: str) -> EventExtraction:
     )
     return result
 
-def get_recruiter_response(description: str) -> RecruiterResponse:
+def get_recruiter_response(description: str, history: str) -> RecruiterResponse:
     completion = client.beta.chat.completions.parse(
         model=model,
         messages=[
             {
                 "role": "system",
-                "content": f"You are a helpful job recruiter assistant. Respond only to the most recent user message in the conversation. If the conversation history seems relevant to the task at hand, reference it in your response but try not to repeat yourself since the user has previous chat messages already.",
+                "content": f"You are a helpful job recruiter assistant. Conversation history (for context only): {history}",
             },
             {"role": "user", "content": description},
         ],
@@ -79,7 +79,7 @@ def get_recruiter_response(description: str) -> RecruiterResponse:
 # Step 3: Chain the functions together
 # --------------------------------------------------------------
 
-def process_request(user_input: str):
+def process_request(user_input: str, history):
     """Main function implementing the prompt chain with gate check"""
     logger.info("Processing desired outcome")
     logger.debug(f"Raw input: {user_input}")
@@ -100,7 +100,7 @@ def process_request(user_input: str):
     logger.info("Gate check passed, proceeding with recruiter response processing")
 
     # Second LLM call: Get detailed exercise information
-    response_details = get_recruiter_response(initial_extraction.description)
+    response_details = get_recruiter_response(initial_extraction.description, history)
 
     # Third LLM call: Generate confirmation
     # confirmation = generate_confirmation(response_details)
@@ -163,8 +163,8 @@ def messages():
         messages = Message.query.order_by(Message.date_created.desc()).all()
         messages_dict = [msg.to_dict() for msg in messages]
         conversation = jsonify(messages_dict)
-
-        system_response = process_request(conversation.get_data(as_text=True))
+       
+        system_response = process_request(decoded_data, conversation.get_data(as_text=True))
 
         if system_response is None:
             return jsonify({"error": "Not a recruiter request."})
