@@ -62,21 +62,21 @@ function App() {
 		}
 	}, [data]);
 	return (
-		<main className="h-screen w-full grid grid-cols-12 gap-8 bg-gray-200/60">
-			<section className="m-4 py-2 pl-2 overflow-y-auto overflow-x-hidden flex flex-col shrink-0 bg-white flex-1 max-h-full col-span-4 border-gray-300 rounded-md border-2">
-				<ul className="h-[80%] overflow-y-auto">
+		<main className="h-screen w-full grid grid-cols-12 bg-gray-200/60">
+			<section className="m-4 px-2 pl-2 overflow-y-auto overflow-x-hidden flex flex-col shrink-0 bg-white flex-1 max-h-full col-span-4 border-gray-300 rounded-md border-2">
+				<ul className="h-[80%] overflow-y-auto flex flex-col">
 					{data &&
 						data.map((msg) => {
 							if (msg.role === "user") {
 								return (
-									<li className="text-sm p-2 rounded-md m-2 bg-violet-500/40">
+									<li className="text-sm max-w-4/5 p-2 rounded-lg m-2 text-gray-600">
 										{msg.content}
 									</li>
 								);
 							}
 							if (msg.role === "system") {
 								return (
-									<li className="text-sm p-2 rounded-md m-2 bg-emerald-500/60">
+									<li className="text-sm font-light max-w-4/5 self-end p-2 rounded-lg shadow-md m-2 bg-[#23033C] text-white">
 										{msg.content}
 									</li>
 								);
@@ -106,7 +106,7 @@ function App() {
 			</section>
 
 			{/* Data */}
-			<section className="flex-col m-4 rounded-md overflow-y-auto overflow-x-hidden col-span-8 flex flex-1">
+			<section className="flex-col m-4 p-4 rounded-md overflow-y-auto overflow-x-hidden col-span-8 flex flex-1">
 				<ul>
 					{data &&
 						data.map((msg) => {
