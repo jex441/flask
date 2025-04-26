@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 * {
-  scroll-behavior: auto;
+  scroll-behavior: smooth;
 }
 .hiring-steps ol {
   padding-left: 20px;

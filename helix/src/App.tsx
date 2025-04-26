@@ -62,35 +62,36 @@ function App() {
 		if (bottomRef.current) {
 			bottomRef.current.scrollIntoView({ behavior: "auto" });
 		}
-	}, [data]);
+	}, [data, loading]);
 
 	useEffect(() => {
 		if (bottomRef1.current) {
 			bottomRef1.current.scrollIntoView({ behavior: "auto" });
 		}
-	}, [data]);
+	}, [data, loading]);
 
 	return (
-		<main className="h-screen w-full grid grid-cols-12 bg-gray-200/60">
+		<main className="h-screen w-full grid grid-cols-12 bg-[#E7E9DE]/50">
 			<section className="m-4 pl-2 overflow-y-auto overflow-x-hidden flex flex-col shrink-0 bg-white flex-1 max-h-full col-span-4 border-gray-300 rounded-md border-2">
 				<ul className="h-[80%] overflow-y-auto flex flex-col">
 					{data &&
 						data.map((msg) => {
 							if (msg.role === "user") {
 								return (
-									<li className="text-sm max-w-4/5 p-2 rounded-lg m-2 text-gray-600">
+									<li className="text-sm max-w-4/5 p-2 rounded-lg m-2 bg-gray-100 text-gray-700">
 										{msg.content}
 									</li>
 								);
 							}
 							if (msg.role === "system") {
 								return (
-									<li className="text-sm font-light max-w-4/5 self-end p-2 rounded-lg shadow-md m-2 bg-[#3D065A] text-white">
+									<li className="text-sm font-light max-w-4/5 self-end p-2 rounded-lg shadow-md m-2 bg-[#DDDDC7]">
 										{msg.content}
 									</li>
 								);
 							}
 						})}
+					{loading && <div className="text-gray-400 animate-pulse">...</div>}
 					<div ref={bottomRef1} />
 				</ul>
 				<section>
@@ -105,7 +106,8 @@ function App() {
 							onChange={(e) => changeHandler(e)}
 						/>
 						<button
-							className="bg-black rounded-md text-white p-2"
+							disabled={input === ""}
+							className="bg-[#3E3E3E] cursor-pointer hover:bg-black transition-all rounded-md text-white p-2"
 							type="submit"
 						>
 							Submit
@@ -129,7 +131,9 @@ function App() {
 							}
 						})}
 				</ul>
-				{loading && <div className="text-gray-400">Loading...</div>}
+				{loading && (
+					<div className="text-gray-400 animate-pulse">Loading...</div>
+				)}
 				<div ref={bottomRef} />
 			</section>
 		</main>
