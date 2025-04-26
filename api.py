@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 from typing import Optional
 import json
+from flask_cors import CORS
 
 # Load environment variables from .env file
 load_dotenv()
@@ -35,9 +36,9 @@ class EventExtraction(BaseModel):
 
 class RecruiterResponse(BaseModel):
     response: str = Field(
-        response="Natural language response to the user's request. If no action is needed just return an empty string."
+        description="Natural language response to the user's request. If no action is needed just return an empty string."
     )
-    confirmation: str = Field(confirmation="A confirmation message to the user and and offer for further assistance.")
+    confirmation: str = Field(description="A confirmation message to the user and and offer for further assistance.")
 
 # Step 2: Define the functions:
 def extract_outcome_info(user_input: str) -> EventExtraction:
@@ -109,6 +110,7 @@ def process_request(user_input: str):
 
 # Initialize app and db:
 app = Flask(__name__)
+CORS(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///helix.db'
 db = SQLAlchemy(app)
 
@@ -122,19 +124,21 @@ class User(db.Model):
 class Message(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     role = db.Column(db.String(20), nullable=False)
-    content = db.Column(db.String(1000), nullable=False)
+    content = db.Column(db.Text(), nullable=False)
+    data = db.Column(db.Text(), nullable=True)
     conversationId = db.Column(db.Integer, nullable=True)
     date_created = db.Column(db.DateTime, default=datetime.now())
 
     def to_dict(self):
         return {
             "role": self.role,
-            "message": self.content,
+            "content": self.content,
+            "data": self.data,
             "date_created": self.date_created,
         }
     
-with app.app_context():
-        db.create_all()
+# with app.app_context():
+#         db.create_all()
 
 # Routes:
 @app.route("/auth", methods=['POST', 'GET'])
@@ -148,11 +152,10 @@ def messages():
     if request.method == 'POST':
         data = request.get_data().decode('utf-8')
         decoded_data = json.loads(data)
-        # Extract the string (example: assuming the data is a dictionary with a key "text")
-        extracted_string = decoded_data.get("message", "")
+        print(decoded_data)
 
         # create message entry in db
-        new_user_message = Message(role="user", content=extracted_string)
+        new_user_message = Message(role="user", content=decoded_data)
         db.session.add(new_user_message)
         db.session.commit()
 
@@ -162,16 +165,24 @@ def messages():
         conversation = jsonify(messages_dict)
 
         system_response = process_request(conversation.get_data(as_text=True))
+
+        if system_response is None:
+            return jsonify({"error": "Not a recruiter request."})
+
         # create new message entry in db with response
-        new_system_message = Message(role="system", content=system_response.response)
+        new_system_message = Message(role="system", content=system_response.confirmation, data=system_response.response)
         db.session.add(new_system_message)
         db.session.commit()
+        print(system_response)
 
         if system_response:
             return jsonify({"message": system_response.confirmation, "data": list(system_response.response) if isinstance(system_response.response, set) else system_response.response})
-        
-        else:
-            return "This doesn't appear to be a request for a recruiter."
+
+    if request.method == "GET":
+        messages = Message.query.order_by(Message.date_created.asc()).all()
+        messages_dict = [msg.to_dict() for msg in messages]
+        conversation = jsonify(messages_dict)
+    return conversation
 
 # Run
 if __name__ == "__main__":
