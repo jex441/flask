@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import SystemResponse from "./SystemResponse";
 
 function App() {
 	const [data, setData] = useState([]);
@@ -48,8 +49,8 @@ function App() {
 	};
 
 	return (
-		<main className="h-[500px] w-full grid grid-cols-12 gap-4">
-			<section className="p-5 flex shrink-0 bg-red-100 flex-1 h-full col-span-4 border-gray-300 rounded-md border-2">
+		<main className="h-screen w-full grid grid-cols-12 gap-8 bg-gray-200/60">
+			<section className="p-5 overflow-y-auto overflow-x-hidden flex shrink-0 bg-white flex-1 h-full col-span-4 border-gray-300 rounded-md border-2">
 				<ul>
 					{data &&
 						data.map((msg) => {
@@ -70,16 +71,12 @@ function App() {
 						})}
 				</ul>
 			</section>
-			<section className="p-5 border-gray-300 rounded-md border-2 col-span-8 flex flex-1">
+			<section className="p-5 overflow-y-auto overflow-x-hidden col-span-8 flex flex-1">
 				<ul>
 					{data &&
 						data.map((msg) => {
 							if (msg.data) {
-								return (
-									<li className="text-sm text-gray-700 my-2 border-gray-300 p-2 border-2">
-										{msg.data}
-									</li>
-								);
+								return <SystemResponse data={msg.data} />;
 							}
 						})}
 				</ul>

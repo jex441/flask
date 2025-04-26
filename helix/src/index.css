@@ -1,1 +1,13 @@
 @import "tailwindcss";
+
+.hiring-steps ol {
+  padding-left: 20px;
+}
+
+.hiring-steps li {
+  margin-bottom: 10px;
+}
+
+.hiring-steps li::marker {
+  font-weight: bold;
+}

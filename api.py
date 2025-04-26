@@ -137,9 +137,6 @@ class Message(db.Model):
             "date_created": self.date_created,
         }
     
-# with app.app_context():
-#         db.create_all()
-
 # Routes:
 @app.route("/auth", methods=['POST', 'GET'])
 def auth():
