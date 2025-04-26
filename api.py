@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 from typing import Optional
 import json
 from flask_cors import CORS
+import httpx
 
 # Load environment variables from .env file
 load_dotenv()
@@ -79,10 +80,9 @@ def get_recruiter_response(description: str, history: str) -> RecruiterResponse:
 # Step 3: Chain the functions together
 # --------------------------------------------------------------
 
-def process_request(user_input: str, history):
+async def process_request(user_input: str, history):
     """Main function implementing the prompt chain with gate check"""
     logger.info("Processing desired outcome")
-    logger.debug(f"Raw input: {user_input}")
 
     # First LLM call: Extract basic info
     initial_extraction = extract_outcome_info(user_input)
@@ -144,24 +144,25 @@ def auth():
         # find or create user
         return 'USER'
     
-@app.route("/messages", methods=['POST', 'PUT', 'GET'])
-def messages():
+@app.route("/messages", methods=["POST", "GET"])
+async def messages():
     if request.method == 'POST':
-        data = request.get_data().decode('utf-8')
-        decoded_data = json.loads(data)
+        data = request.get_data()  # This is synchronous
+        decoded_data = json.loads(data.decode('utf-8'))
         print(decoded_data)
 
         # create message entry in db
         new_user_message = Message(role="user", content=decoded_data)
         db.session.add(new_user_message)
-        db.session.commit()
+        db.session.commit()  # Synchronous commit here
 
         # return message history of conversation and pass to process_request
         messages = Message.query.order_by(Message.date_created.desc()).all()
         messages_dict = [msg.to_dict() for msg in messages]
         conversation = jsonify(messages_dict)
-       
-        system_response = process_request(decoded_data, conversation.get_data(as_text=True))
+        
+        # Awaiting the async process request to make sure the response is ready
+        system_response = await process_request(decoded_data, conversation.get_data(as_text=True))
 
         if system_response is None:
             return jsonify({"error": "Not a recruiter request."})
@@ -169,18 +170,20 @@ def messages():
         # create new message entry in db with response
         new_system_message = Message(role="system", content=system_response.confirmation, data=system_response.response)
         db.session.add(new_system_message)
-        db.session.commit()
-        print(system_response)
+        db.session.commit()  # Synchronous commit
 
-        if system_response:
-            return jsonify({"message": system_response.confirmation, "data": list(system_response.response) if isinstance(system_response.response, set) else system_response.response})
+        # Return response once everything is done
+        return jsonify(
+            {"role": "user", "content": decoded_data},
+            {"role": "system", "content": system_response.confirmation, "data": system_response.response if isinstance(system_response.response, list) else system_response.response}
+        )
 
-    if request.method == "GET":
+    elif request.method == "GET":
         messages = Message.query.order_by(Message.date_created.asc()).all()
         messages_dict = [msg.to_dict() for msg in messages]
         conversation = jsonify(messages_dict)
-    return conversation
-
+        return conversation
+    
 # Run
 if __name__ == "__main__":
     app.run(port=8000, debug=True)

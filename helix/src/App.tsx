@@ -8,6 +8,8 @@ function App() {
 	const [data, setData] = useState([]);
 	const [input, setInput] = useState("");
 
+	const [loading, setLoading] = useState(false);
+
 	const fetchData = async () => {
 		try {
 			let res = await fetch("http://127.0.0.1:8000/messages");
@@ -16,6 +18,7 @@ function App() {
 			}
 			let d = await res.json();
 			setData(d);
+			setLoading(false);
 		} catch (error) {
 			console.error("Failed to fetch data:", error);
 		}
@@ -25,8 +28,10 @@ function App() {
 		fetchData();
 	}, []);
 
-	const submitHandler = async () => {
+	const submitHandler = async (e) => {
+		e.preventDefault();
 		try {
+			setLoading(true);
 			const response = await fetch("http://127.0.0.1:8000/messages", {
 				method: "POST",
 				headers: {
@@ -38,9 +43,11 @@ function App() {
 			if (!response.ok) {
 				throw new Error(`HTTP error! status: ${response.status}`);
 			}
-
-			const data = await response.json();
-			console.log("Success:", data);
+			const newMessages = await response.json();
+			const newData = [...data, ...newMessages];
+			setData(newData);
+			setLoading(false);
+			setInput("");
 		} catch (error) {
 			console.error("Error:", error);
 		}
@@ -56,14 +63,16 @@ function App() {
 			bottomRef.current.scrollIntoView({ behavior: "auto" });
 		}
 	}, [data]);
+
 	useEffect(() => {
 		if (bottomRef1.current) {
 			bottomRef1.current.scrollIntoView({ behavior: "auto" });
 		}
 	}, [data]);
+
 	return (
 		<main className="h-screen w-full grid grid-cols-12 bg-gray-200/60">
-			<section className="m-4 px-2 pl-2 overflow-y-auto overflow-x-hidden flex flex-col shrink-0 bg-white flex-1 max-h-full col-span-4 border-gray-300 rounded-md border-2">
+			<section className="m-4 pl-2 overflow-y-auto overflow-x-hidden flex flex-col shrink-0 bg-white flex-1 max-h-full col-span-4 border-gray-300 rounded-md border-2">
 				<ul className="h-[80%] overflow-y-auto flex flex-col">
 					{data &&
 						data.map((msg) => {
@@ -76,7 +85,7 @@ function App() {
 							}
 							if (msg.role === "system") {
 								return (
-									<li className="text-sm font-light max-w-4/5 self-end p-2 rounded-lg shadow-md m-2 bg-[#23033C] text-white">
+									<li className="text-sm font-light max-w-4/5 self-end p-2 rounded-lg shadow-md m-2 bg-[#3D065A] text-white">
 										{msg.content}
 									</li>
 								);
@@ -86,12 +95,12 @@ function App() {
 				</ul>
 				<section>
 					<form
-						onSubmit={submitHandler}
+						onSubmit={(e) => submitHandler(e)}
 						className="flex flex-col w-full flex p-3 gap-2"
 					>
 						<textarea
 							placeholder="How can I help?"
-							className="border-2 border-gray-300 p-2"
+							className="border-2 text-sm border-gray-300 p-2"
 							value={input}
 							onChange={(e) => changeHandler(e)}
 						/>
@@ -120,6 +129,7 @@ function App() {
 							}
 						})}
 				</ul>
+				{loading && <div className="text-gray-400">Loading...</div>}
 				<div ref={bottomRef} />
 			</section>
 		</main>
