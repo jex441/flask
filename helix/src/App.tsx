@@ -72,13 +72,13 @@ function App() {
 
 	return (
 		<main className="h-screen w-full grid grid-cols-12 bg-[#EAE1E1]/50">
-			<section className="m-4 pl-2 overflow-y-auto overflow-x-hidden flex flex-col shrink-0 bg-white flex-1 max-h-full col-span-4 border-gray-300 rounded-md border-2">
+			<section className="m-4 pl-2 overflow-y-auto overflow-x-hidden flex flex-col shrink-0 bg-white flex-1 max-h-full col-span-4 border-gray-200 rounded-md border-2">
 				<ul className="h-[80%] overflow-y-auto flex flex-col">
 					{data &&
 						data.map((msg) => {
 							if (msg.role === "user") {
 								return (
-									<li className="text-sm max-w-4/5 p-2 rounded-lg m-2 bg-[#EAE1E1]/50 text-gray-700">
+									<li className="text-sm max-w-4/5 p-2 rounded-lg m-2 bg-[#F5F5F5]/50 text-gray-700">
 										{msg.content}
 									</li>
 								);
@@ -110,7 +110,7 @@ function App() {
 						/>
 						<button
 							disabled={input === ""}
-							className="hover:bg-[#321D2F] cursor-pointer bg-[#3D2E4F] transition-all rounded-md text-white p-2"
+							className="hover:bg-[#321D2F] bg-[#321D2F]/95 cursor-pointer  transition-all rounded-md text-white p-2"
 							type="submit"
 						>
 							Submit
@@ -120,7 +120,7 @@ function App() {
 			</section>
 
 			{/* Data */}
-			<section className="flex-col m-4 p-4 rounded-md overflow-y-auto overflow-x-hidden col-span-8 flex flex-1">
+			<section className="flex-col p-4 rounded-md overflow-y-auto overflow-x-hidden col-span-8 flex flex-1">
 				<ul>
 					{data &&
 						data.map((msg) => {
