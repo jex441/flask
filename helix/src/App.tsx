@@ -71,14 +71,14 @@ function App() {
 	}, [data, loading]);
 
 	return (
-		<main className="h-screen w-full grid grid-cols-12 bg-[#E7E9DE]/50">
+		<main className="h-screen w-full grid grid-cols-12 bg-[#EAE1E1]/50">
 			<section className="m-4 pl-2 overflow-y-auto overflow-x-hidden flex flex-col shrink-0 bg-white flex-1 max-h-full col-span-4 border-gray-300 rounded-md border-2">
 				<ul className="h-[80%] overflow-y-auto flex flex-col">
 					{data &&
 						data.map((msg) => {
 							if (msg.role === "user") {
 								return (
-									<li className="text-sm max-w-4/5 p-2 rounded-lg m-2 bg-gray-100 text-gray-700">
+									<li className="text-sm max-w-4/5 p-2 rounded-lg m-2 bg-[#EAE1E1]/50 text-gray-700">
 										{msg.content}
 									</li>
 								);
@@ -91,7 +91,9 @@ function App() {
 								);
 							}
 						})}
-					{loading && <div className="text-gray-400 animate-pulse">...</div>}
+					{loading && (
+						<div className="text-gray-400 text-xl animate-pulse">...</div>
+					)}
 					<div ref={bottomRef1} />
 				</ul>
 				<section>
@@ -101,13 +103,14 @@ function App() {
 					>
 						<textarea
 							placeholder="How can I help you today?"
+							disabled={loading}
 							className="border-2 text-sm border-gray-300 p-2"
 							value={input}
 							onChange={(e) => changeHandler(e)}
 						/>
 						<button
 							disabled={input === ""}
-							className="bg-[#3E3E3E] cursor-pointer hover:bg-black transition-all rounded-md text-white p-2"
+							className="hover:bg-[#321D2F] cursor-pointer bg-[#3D2E4F] transition-all rounded-md text-white p-2"
 							type="submit"
 						>
 							Submit

@@ -165,7 +165,10 @@ async def messages():
         system_response = await process_request(decoded_data, conversation.get_data(as_text=True))
 
         if system_response is None:
-            return jsonify({"error": "Not a recruiter request."})
+            return jsonify(
+            {"role": "user", "content": decoded_data},
+            {"role": "system", "content": "I'm sorry, that doesn't appear to be related to job recruitement. If you have questions or need further assistance with job recruitment, feel free to ask!"}
+            )
 
         # create new message entry in db with response
         new_system_message = Message(role="system", content=system_response.confirmation, data=system_response.response)
