@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from openai import OpenAI
@@ -29,37 +29,24 @@ class EventExtraction(BaseModel):
 
     description: str = Field(description="Raw description of the request")
     is_recruiter_request: bool = Field(
-        description="Whether this text describes an request relevant to a job recruiter."
+        description="Whether this text describes a request relevant to a job recruiter assistant."
     )
     confidence_score: float = Field(description="Confidence score between 0 and 1")
 
 class RecruiterResponse(BaseModel):
-    """Second LLM call: Parse specific role and required experience details"""
-
-    name: str = Field(description="Name of the role")
-    description: str = Field(
-        description="Type of experience needed from candidate to fill an open position."
+    response: str = Field(
+        response="Natural language response to the user's request."
     )
-
-class EventConfirmation(BaseModel):
-    """Third LLM call: Generate confirmation message"""
-
-    confirmation_message: str = Field(
-        description="Natural language confirmation message"
-    )
+    confirmation: str = Field(confirmation="A confirmation message to the user that the request has been processed and offering further assistance")
 
 # Step 2: Define the functions:
 def extract_outcome_info(user_input: str) -> EventExtraction:
-    """First LLM call to determine if input is a task related to recruitment for a role with required experience"""
-    logger.info("Starting outcome extraction analysis")
-    logger.debug(f"Input text: {user_input}")
-
     completion = client.beta.chat.completions.parse(
         model=model,
         messages=[
             {
                 "role": "system",
-                "content": f"You are a job recruiter tasked with hiring at your organization. Analyze if the text is a request related to a task performed by a job recruiter seeking to hire qualified candidates for an open position.",
+                "content": f"You are a helpful job recruiter assistant. Analyze only the most recent message in the conversation history. Check if it is related to a task performed by a job recruiter.",
             },
             {"role": "user", "content": user_input},
         ],
@@ -72,50 +59,26 @@ def extract_outcome_info(user_input: str) -> EventExtraction:
     return result
 
 def get_recruiter_response(description: str) -> RecruiterResponse:
-    """Second LLM call to determine the recruiter message"""
-    logger.info("Starting to develop recruiter action")
-    print("description::", description)
     completion = client.beta.chat.completions.parse(
         model=model,
         messages=[
             {
                 "role": "system",
-                "content": f"You are a professional job recruiter tasked with hiring at your organization. With the details provided, formulate a quality response to their request.",
+                "content": f"You are a helpful job recruiter assistant. Respond only to the most recent user message in the conversation. If the conversation history seems relevant to the task at hand, reference it in your response but try not to repeat yourself.",
             },
             {"role": "user", "content": description},
         ],
         response_format=RecruiterResponse,
     )
     result = completion.choices[0].message.parsed
-    logger.info(
-        f"Parsed response: {result.name}"
-    )
-    return result
 
-def generate_confirmation(sequence_details: RecruiterResponse) -> EventConfirmation:
-    """Third LLM call to generate a confirmation message"""
-    logger.info("Generating confirmation message")
-
-    completion = client.beta.chat.completions.parse(
-        model=model,
-        messages=[
-            {
-                "role": "system",
-                "content": "Generate a natural language response as a professional job recruiter. This response will be used by a human at your organization to send to qualified candidates. Part of your response should be fulfilling the task of the user, and part of your response should be addressed to the user at your organization who will use your response to send to candidates. Ask the user if they would like any modifications to this response to qualified candidates.",
-            },
-            {"role": "user", "content": str(sequence_details.model_dump())},
-        ],
-        response_format=EventConfirmation,
-    )
-    result = completion.choices[0].message.parsed
-    logger.info("Confirmation message generated successfully")
     return result
 
 # --------------------------------------------------------------
 # Step 3: Chain the functions together
 # --------------------------------------------------------------
 
-def process_request(user_input: str) -> Optional[EventConfirmation]:
+def process_request(user_input: str):
     """Main function implementing the prompt chain with gate check"""
     logger.info("Processing desired outcome")
     logger.debug(f"Raw input: {user_input}")
@@ -137,12 +100,12 @@ def process_request(user_input: str) -> Optional[EventConfirmation]:
 
     # Second LLM call: Get detailed exercise information
     response_details = get_recruiter_response(initial_extraction.description)
-    print('::', response_details)
+
     # Third LLM call: Generate confirmation
-    confirmation = generate_confirmation(response_details)
+    # confirmation = generate_confirmation(response_details)
 
     logger.info("Recruiter response confirmation generated successfully")
-    return confirmation
+    return response_details
 
 # Initialize app and db:
 app = Flask(__name__)
@@ -158,12 +121,17 @@ class User(db.Model):
 
 class Message(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(200), nullable=False)
-    userId = db.Column(db.Integer, nullable=False)
+    role = db.Column(db.String(20), nullable=False)
+    content = db.Column(db.String(1000), nullable=False)
+    conversationId = db.Column(db.Integer, nullable=True)
     date_created = db.Column(db.DateTime, default=datetime.now())
 
-    def __repr__(self):
-        return '<Message %r' % self.id
+    def to_dict(self):
+        return {
+            "role": self.role,
+            "message": self.content,
+            "date_created": self.date_created,
+        }
     
 with app.app_context():
         db.create_all()
@@ -179,15 +147,28 @@ def auth():
 def messages():
     if request.method == 'POST':
         data = request.get_data().decode('utf-8')
-
         decoded_data = json.loads(data)
         # Extract the string (example: assuming the data is a dictionary with a key "text")
         extracted_string = decoded_data.get("message", "")
-        print(extracted_string)
-    
-        result = process_request(extracted_string)
-        if result:
-            return f"Confirmation: {result.confirmation_message}"
+
+        # create message entry in db
+        new_user_message = Message(role="user", content=extracted_string)
+        db.session.add(new_user_message)
+        db.session.commit()
+
+        # return message history of conversation and pass to process_request
+        messages = Message.query.order_by(Message.date_created.desc()).all()
+        messages_dict = [msg.to_dict() for msg in messages]
+        conversation = jsonify(messages_dict)
+
+        system_response = process_request(conversation.get_data(as_text=True))
+        # create new message entry in db with response
+        new_system_message = Message(role="system", content=system_response.response)
+        db.session.add(new_system_message)
+        db.session.commit()
+
+        if system_response:
+            return f"Response: {system_response}"
         else:
             return "This doesn't appear to be a request for a recruiter."
 
