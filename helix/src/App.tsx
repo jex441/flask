@@ -1,7 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import SystemResponse from "./SystemResponse";
 
 function App() {
+	const bottomRef = useRef<HTMLDivElement>(null);
+	const bottomRef1 = useRef<HTMLDivElement>(null);
+
 	const [data, setData] = useState([]);
 	const [input, setInput] = useState("");
 
@@ -17,7 +20,7 @@ function App() {
 			console.error("Failed to fetch data:", error);
 		}
 	};
-
+	console.log(data);
 	useEffect(() => {
 		fetchData();
 	}, []);
@@ -48,44 +51,76 @@ function App() {
 		setInput(e.target.value);
 	};
 
+	useEffect(() => {
+		if (bottomRef.current) {
+			bottomRef.current.scrollIntoView({ behavior: "auto" });
+		}
+	}, [data]);
+	useEffect(() => {
+		if (bottomRef1.current) {
+			bottomRef1.current.scrollIntoView({ behavior: "auto" });
+		}
+	}, [data]);
 	return (
 		<main className="h-screen w-full grid grid-cols-12 gap-8 bg-gray-200/60">
-			<section className="p-5 overflow-y-auto overflow-x-hidden flex shrink-0 bg-white flex-1 h-full col-span-4 border-gray-300 rounded-md border-2">
-				<ul>
+			<section className="m-4 py-2 pl-2 overflow-y-auto overflow-x-hidden flex flex-col shrink-0 bg-white flex-1 max-h-full col-span-4 border-gray-300 rounded-md border-2">
+				<ul className="h-[80%] overflow-y-auto">
 					{data &&
 						data.map((msg) => {
 							if (msg.role === "user") {
 								return (
-									<li className="p-2 rounded-md m-2 bg-blue-400">
+									<li className="text-sm p-2 rounded-md m-2 bg-violet-500/40">
 										{msg.content}
 									</li>
 								);
 							}
 							if (msg.role === "system") {
 								return (
-									<li className="p-2 rounded-md m-2 bg-green-400">
+									<li className="text-sm p-2 rounded-md m-2 bg-emerald-500/60">
 										{msg.content}
 									</li>
 								);
 							}
 						})}
+					<div ref={bottomRef1} />
 				</ul>
+				<section>
+					<form
+						onSubmit={submitHandler}
+						className="flex flex-col w-full flex p-3 gap-2"
+					>
+						<textarea
+							placeholder="How can I help?"
+							className="border-2 border-gray-300 p-2"
+							value={input}
+							onChange={(e) => changeHandler(e)}
+						/>
+						<button
+							className="bg-black rounded-md text-white p-2"
+							type="submit"
+						>
+							Submit
+						</button>
+					</form>
+				</section>
 			</section>
-			<section className="p-5 overflow-y-auto overflow-x-hidden col-span-8 flex flex-1">
+
+			{/* Data */}
+			<section className="flex-col m-4 rounded-md overflow-y-auto overflow-x-hidden col-span-8 flex flex-1">
 				<ul>
 					{data &&
 						data.map((msg) => {
 							if (msg.data) {
-								return <SystemResponse data={msg.data} />;
+								return (
+									<SystemResponse
+										data={msg.data}
+										createdAt={msg.date_created}
+									/>
+								);
 							}
 						})}
 				</ul>
-			</section>
-			<section>
-				<form onSubmit={submitHandler}>
-					<input value={input} onChange={(e) => changeHandler(e)} type="text" />
-					<button type="submit">Submit</button>
-				</form>
+				<div ref={bottomRef} />
 			</section>
 		</main>
 	);

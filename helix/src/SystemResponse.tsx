@@ -1,13 +1,17 @@
 import DOMPurify from "dompurify";
 import { marked } from "marked";
-export default function SystemResponse({ data }) {
+export default function SystemResponse({ data, createdAt }) {
 	const markdown = marked(data);
 	const sanitized = DOMPurify.sanitize(markdown);
-	console.log(data);
 	return (
-		<div
-			className="text-sm my-2 bg-white border-gray-200 p-2 rounded-md border-2"
-			dangerouslySetInnerHTML={{ __html: sanitized }}
-		/>
+		<>
+			<div
+				className="text-sm mt-4 leading-5 text-gray-900 p-4 bg-white border-gray-200 rounded-md border-2"
+				dangerouslySetInnerHTML={{ __html: sanitized }}
+			/>
+			<div className="text-gray-600 text-xs mt-1 mb-3">
+				Generated {createdAt}
+			</div>
+		</>
 	);
 }
