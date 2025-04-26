@@ -175,7 +175,7 @@ async def messages():
         # Return response once everything is done
         return jsonify(
             {"role": "user", "content": decoded_data},
-            {"role": "system", "content": system_response.confirmation, "data": system_response.response if isinstance(system_response.response, list) else system_response.response}
+            {"date_created": datetime.now(), "role": "system", "content": system_response.confirmation, "data": system_response.response if isinstance(system_response.response, list) else system_response.response}
         )
 
     elif request.method == "GET":

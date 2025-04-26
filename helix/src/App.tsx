@@ -99,7 +99,7 @@ function App() {
 						className="flex flex-col w-full flex p-3 gap-2"
 					>
 						<textarea
-							placeholder="How can I help?"
+							placeholder="How can I help you today?"
 							className="border-2 text-sm border-gray-300 p-2"
 							value={input}
 							onChange={(e) => changeHandler(e)}
