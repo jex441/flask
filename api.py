@@ -35,9 +35,9 @@ class EventExtraction(BaseModel):
 
 class RecruiterResponse(BaseModel):
     response: str = Field(
-        response="Natural language response to the user's request."
+        response="Natural language response to the user's request. If no action is needed just return an empty string."
     )
-    confirmation: str = Field(confirmation="A confirmation message to the user that the request has been processed and offering further assistance")
+    confirmation: str = Field(confirmation="A confirmation message to the user and and offer for further assistance.")
 
 # Step 2: Define the functions:
 def extract_outcome_info(user_input: str) -> EventExtraction:
@@ -64,7 +64,7 @@ def get_recruiter_response(description: str) -> RecruiterResponse:
         messages=[
             {
                 "role": "system",
-                "content": f"You are a helpful job recruiter assistant. Respond only to the most recent user message in the conversation. If the conversation history seems relevant to the task at hand, reference it in your response but try not to repeat yourself.",
+                "content": f"You are a helpful job recruiter assistant. Respond only to the most recent user message in the conversation. If the conversation history seems relevant to the task at hand, reference it in your response but try not to repeat yourself since the user has previous chat messages already.",
             },
             {"role": "user", "content": description},
         ],
@@ -168,7 +168,8 @@ def messages():
         db.session.commit()
 
         if system_response:
-            return f"Response: {system_response}"
+            return jsonify({"message": system_response.confirmation, "data": list(system_response.response) if isinstance(system_response.response, set) else system_response.response})
+        
         else:
             return "This doesn't appear to be a request for a recruiter."
 
