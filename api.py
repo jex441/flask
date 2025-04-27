@@ -3,32 +3,17 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from openai import OpenAI
 import os
-import logging
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
-from typing import Optional
 import json
 from flask_cors import CORS
-import httpx
 
-# Load environment variables from .env file
 load_dotenv()
-
-# Set up logging and ai api configuration:
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
-logger = logging.getLogger(__name__)
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 model = "gpt-4o"
 
-# Step 1: Assess if request is a relevant recruiter task
 class EventExtraction(BaseModel):
-    """First LLM call: Extract basic event information"""
-
     description: str = Field(description="Raw description of the request")
     is_recruiter_request: bool = Field(
         description="Whether this text describes a request relevant to a job recruiter assistant."
@@ -41,7 +26,6 @@ class RecruiterResponse(BaseModel):
     )
     confirmation: str = Field(description="A confirmation message to the user and and offer for further assistance.")
 
-# Step 2: Define the functions:
 def extract_outcome_info(user_input: str) -> EventExtraction:
     completion = client.beta.chat.completions.parse(
         model=model,
@@ -55,9 +39,6 @@ def extract_outcome_info(user_input: str) -> EventExtraction:
         response_format=EventExtraction,
     )
     result = completion.choices[0].message.parsed
-    logger.info(
-        f"Extraction complete - Is request related to a job recruiter: {result.is_recruiter_request}, Confidence: {result.confidence_score:.2f}"
-    )
     return result
 
 def get_recruiter_response(description: str, history: str) -> RecruiterResponse:
@@ -76,14 +57,7 @@ def get_recruiter_response(description: str, history: str) -> RecruiterResponse:
 
     return result
 
-# --------------------------------------------------------------
-# Step 3: Chain the functions together
-# --------------------------------------------------------------
-
 async def process_request(user_input: str, history):
-    """Main function implementing the prompt chain with gate check"""
-    logger.info("Processing desired outcome")
-
     # First LLM call: Extract basic info
     initial_extraction = extract_outcome_info(user_input)
 
@@ -92,20 +66,9 @@ async def process_request(user_input: str, history):
         not initial_extraction.is_recruiter_request
         or initial_extraction.confidence_score < 0.7
     ):
-        logger.warning(
-            f"Gate check failed - is_recruiter_request: {initial_extraction.is_recruiter_request}, confidence: {initial_extraction.confidence_score:.2f}"
-        )
         return None
 
-    logger.info("Gate check passed, proceeding with recruiter response processing")
-
-    # Second LLM call: Get detailed exercise information
     response_details = get_recruiter_response(initial_extraction.description, history)
-
-    # Third LLM call: Generate confirmation
-    # confirmation = generate_confirmation(response_details)
-
-    logger.info("Recruiter response confirmation generated successfully")
     return response_details
 
 # Initialize app and db:
@@ -113,13 +76,6 @@ app = Flask(__name__)
 CORS(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///helix.db'
 db = SQLAlchemy(app)
-
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(20), nullable=False)
-
-    def __repr__(self):
-        return '<User %r' % self.id
 
 class Message(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -137,24 +93,16 @@ class Message(db.Model):
             "date_created": self.date_created,
         }
     
-# Routes:
-@app.route("/auth", methods=['POST', 'GET'])
-def auth():
-    if request.method == 'POST':
-        # find or create user
-        return 'USER'
-    
 @app.route("/messages", methods=["POST", "GET"])
 async def messages():
     if request.method == 'POST':
-        data = request.get_data()  # This is synchronous
+        data = request.get_data()
         decoded_data = json.loads(data.decode('utf-8'))
-        print(decoded_data)
 
         # create message entry in db
         new_user_message = Message(role="user", content=decoded_data)
         db.session.add(new_user_message)
-        db.session.commit()  # Synchronous commit here
+        db.session.commit()
 
         # return message history of conversation and pass to process_request
         messages = Message.query.order_by(Message.date_created.desc()).all()
@@ -173,8 +121,8 @@ async def messages():
         # create new message entry in db with response
         new_system_message = Message(role="system", content=system_response.confirmation, data=system_response.response)
         db.session.add(new_system_message)
-        db.session.commit()  # Synchronous commit
-
+        db.session.commit()
+        
         # Return response once everything is done
         return jsonify(
             {"role": "user", "content": decoded_data},
