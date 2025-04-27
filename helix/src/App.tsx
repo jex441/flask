@@ -86,14 +86,20 @@ function App() {
 						data.map((msg: Message) => {
 							if (msg.role === "user") {
 								return (
-									<li className="text-sm max-w-4/5 p-2 rounded-lg m-2 bg-[#F5F5F5]/50 text-gray-700">
+									<li
+										key={msg.date_created}
+										className="text-sm max-w-4/5 p-2 rounded-lg m-2 bg-[#F5F5F5]/50 text-gray-700"
+									>
 										{msg.content}
 									</li>
 								);
 							}
 							if (msg.role === "system") {
 								return (
-									<li className="text-sm font-light max-w-4/5 self-end p-2 rounded-lg shadow-md m-2 bg-[#DDDDC7]">
+									<li
+										key={msg.date_created}
+										className="text-sm font-light max-w-4/5 self-end p-2 rounded-lg shadow-md m-2 bg-[#DDDDC7]"
+									>
 										{msg.content}
 									</li>
 								);
@@ -134,6 +140,7 @@ function App() {
 							if (msg.data) {
 								return (
 									<SystemResponse
+										key={msg.date_created}
 										data={msg.data}
 										date_created={msg.date_created}
 									/>
