@@ -1,14 +1,21 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, ChangeEvent, FormEvent } from "react";
 import SystemResponse from "./SystemResponse";
+
+interface Message {
+	role: string;
+	date_created: string | null;
+	content: string;
+	data: string | null;
+}
 
 function App() {
 	const bottomRef = useRef<HTMLDivElement>(null);
 	const bottomRef1 = useRef<HTMLDivElement>(null);
 
-	const [data, setData] = useState([]);
-	const [input, setInput] = useState("");
+	const [data, setData] = useState<Message[]>([]);
+	const [input, setInput] = useState<string>("");
 
-	const [loading, setLoading] = useState(false);
+	const [loading, setLoading] = useState<Boolean>(false);
 
 	const fetchData = async () => {
 		try {
@@ -16,19 +23,19 @@ function App() {
 			if (!res.ok) {
 				throw new Error(`HTTP error! status: ${res.status}`);
 			}
-			let d = await res.json();
-			setData(d);
+			let data: Message[] = await res.json();
+			setData(data);
 			setLoading(false);
 		} catch (error) {
 			console.error("Failed to fetch data:", error);
 		}
 	};
-	console.log(data);
+
 	useEffect(() => {
 		fetchData();
 	}, []);
 
-	const submitHandler = async (e) => {
+	const submitHandler = async (e: FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
 		try {
 			setLoading(true);
@@ -43,8 +50,8 @@ function App() {
 			if (!response.ok) {
 				throw new Error(`HTTP error! status: ${response.status}`);
 			}
-			const newMessages = await response.json();
-			const newData = [...data, ...newMessages];
+			const newMessages: Message[] = await response.json();
+			const newData: Message[] = [...data, ...newMessages];
 			setData(newData);
 			setLoading(false);
 			setInput("");
@@ -53,9 +60,9 @@ function App() {
 		}
 	};
 
-	const changeHandler = (e) => {
+	const changeHandler = (e: ChangeEvent<HTMLTextAreaElement>) => {
 		e.preventDefault();
-		setInput(e.target.value);
+		setInput(e.currentTarget.value);
 	};
 
 	useEffect(() => {
@@ -72,10 +79,11 @@ function App() {
 
 	return (
 		<main className="h-screen w-full grid grid-cols-12 bg-[#EAE1E1]/50">
+			{/* Chat */}
 			<section className="m-4 pl-2 overflow-y-auto overflow-x-hidden flex flex-col shrink-0 bg-white flex-1 max-h-full col-span-4 border-gray-200 rounded-md border-2">
 				<ul className="h-[80%] overflow-y-auto flex flex-col">
 					{data &&
-						data.map((msg) => {
+						data.map((msg: Message) => {
 							if (msg.role === "user") {
 								return (
 									<li className="text-sm max-w-4/5 p-2 rounded-lg m-2 bg-[#F5F5F5]/50 text-gray-700">
@@ -103,7 +111,6 @@ function App() {
 					>
 						<textarea
 							placeholder="How can I help you today?"
-							disabled={loading}
 							className="border-2 text-sm border-gray-300 p-2"
 							value={input}
 							onChange={(e) => changeHandler(e)}
@@ -119,7 +126,7 @@ function App() {
 				</section>
 			</section>
 
-			{/* Data */}
+			{/* Generation */}
 			<section className="flex-col p-4 rounded-md overflow-y-auto overflow-x-hidden col-span-8 flex flex-1">
 				<ul>
 					{data &&
@@ -128,7 +135,7 @@ function App() {
 								return (
 									<SystemResponse
 										data={msg.data}
-										createdAt={msg.date_created}
+										date_created={msg.date_created}
 									/>
 								);
 							}
