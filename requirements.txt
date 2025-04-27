@@ -1,1 +1,6 @@
-Flask-RESTful==0.3.10
+Flask
+Flask-SQLAlchemy
+python-dotenv
+pydantic
+openai
+flask-cors
