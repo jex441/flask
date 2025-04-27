@@ -12,7 +12,7 @@ export default function SystemResponse({
 	return (
 		<>
 			<textarea
-				className="w-full p-2 bg-white min-h-[400px] text-sm"
+				className="w-full p-2 bg-white/70 hover:bg-white min-h-[400px] text-sm"
 				onChange={(e) => setText(e.currentTarget.value)}
 				value={text}
 			/>
