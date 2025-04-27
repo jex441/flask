@@ -1,5 +1,4 @@
-import DOMPurify from "dompurify";
-import { marked } from "marked";
+import { useState } from "react";
 
 export default function SystemResponse({
 	data,
@@ -8,13 +7,14 @@ export default function SystemResponse({
 	data: string;
 	date_created: string | null;
 }) {
-	const markdown = marked(data);
-	const sanitized = DOMPurify.sanitize(markdown);
+	const [text, setText] = useState<string>(data);
+
 	return (
 		<>
-			<div
-				className="text-xs mt-4 leading-5 text-gray-900 p-4 bg-white/60 transition-all hover:bg-white border-gray-200 rounded-md border-2"
-				dangerouslySetInnerHTML={{ __html: sanitized }}
+			<textarea
+				className="w-full p-2 bg-white min-h-[400px] text-sm"
+				onChange={(e) => setText(e.currentTarget.value)}
+				value={text}
 			/>
 			<div className="text-gray-500 text-xs mt-1 mb-3">
 				Generated on {date_created}
